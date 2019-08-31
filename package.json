@@ -1,0 +1,77 @@
+{
+  "name": "info-web",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test --transformIgnorePatterns \"node_modules/(?!(antd|rc-pagination|rc-calendar)/)\"",
+    "eject": "react-app-rewired eject",
+    "lint": "eslint --ext .js,.ts src/",
+    "typecheck": "tsc --noUnusedLocals"
+  },
+  "dependencies": {
+    "@apollo/react-hooks": "3.0.1",
+    "antd": "3.22.2",
+    "apollo-cache-inmemory": "1.6.3",
+    "apollo-client": "2.6.4",
+    "apollo-link-context": "1.0.18",
+    "apollo-link-http": "1.5.15",
+    "apollo-link-ws": "1.0.18",
+    "axios": "0.19.0",
+    "graphql": "14.5.4",
+    "graphql-tag": "2.10.1",
+    "jwt-decode": "2.2.0",
+    "moment": "2.24.0",
+    "react": "16.9.0",
+    "react-custom-scrollbars": "4.2.1",
+    "react-dom": "16.9.0",
+    "react-router-dom": "5.0.1",
+    "subscriptions-transport-ws": "0.9.16"
+  },
+  "devDependencies": {
+    "@types/jest": "24.0.18",
+    "@types/jwt-decode": "2.2.1",
+    "@types/node": "12.7.3",
+    "@types/react": "16.9.2",
+    "@types/react-custom-scrollbars": "4.0.6",
+    "@types/react-dom": "16.9.0",
+    "@types/react-router-dom": "4.3.5",
+    "babel-plugin-import": "1.12.1",
+    "customize-cra": "0.5.0",
+    "husky": "3.0.4",
+    "less": "3.10.3",
+    "less-loader": "5.0.0",
+    "lint-staged": "9.2.5",
+    "prettier": "1.18.2",
+    "react-app-rewired": "2.1.3",
+    "react-scripts": "3.1.1",
+    "typescript": "3.6.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged && yarn lint && yarn typecheck"
+    }
+  },
+  "lint-staged": {
+    "src/**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

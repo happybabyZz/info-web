@@ -1,0 +1,25 @@
+.root {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.container {
+  display: flex;
+  max-width: 35%;
+  flex-direction: column;
+}
+
+.bubble {
+  width: 100%;
+  word-wrap: break-word;
+  background-color: #eee;
+  border-radius: 15px;
+  padding: 10px;
+}
+
+.date {
+  color: gray;
+  font-size: 10px;
+  margin: 5px;
+}
