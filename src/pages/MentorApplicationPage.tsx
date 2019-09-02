@@ -607,15 +607,15 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
       <Timeline className={styles.timeline}>
         <Timeline.Item color="blue">
           <p>第一阶段：自由申请与匹配</p>
-          <p>2019-09-07 ~ 2019-09-13</p>
+          <p>2019-09-04 00:00 ~ 2019-09-11 23:59</p>
         </Timeline.Item>
         <Timeline.Item color="gray">
           <p>第二阶段：未匹配同学补选</p>
-          <p>2019-09-14 ~ 2019-09-20</p>
+          <p>2019-09-12 00:00 ~ 2019-09-16 23:59</p>
         </Timeline.Item>
         <Timeline.Item color="gray">
           <p>第三阶段：系统随机分配</p>
-          <p>2019-09-21 ~</p>
+          <p>2019-09-17 00:00 ~ 2019-09-22 23:59</p>
         </Timeline.Item>
       </Timeline>
       <>
