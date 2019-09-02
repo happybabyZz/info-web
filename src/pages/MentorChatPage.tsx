@@ -180,6 +180,7 @@ const MentorChatPage: React.FC<MentorChatPageProps> = ({ setPage }) => {
   }
 
   if (
+    (user.group !== 'student' && user.group !== 'teacher') ||
     (user.group === 'student' && !mentor) ||
     (user.group === 'teacher' && students.length === 0)
   ) {

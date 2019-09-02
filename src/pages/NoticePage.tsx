@@ -217,7 +217,7 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
         }}
       >
         <Typography.Title level={2}>公告</Typography.Title>
-        {user.role === 'counselor' && (
+        {(user.role === 'counselor' || user.role === 'root') && (
           <Button
             style={{ marginBottom: 12 }}
             onClick={() => setFormVisible(true)}
@@ -233,7 +233,7 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
           <NoticeCard
             style={{ margin: 24 }}
             onEditPress={
-              user.role === 'counselor'
+              user.role === 'counselor' || user.role === 'root'
                 ? () => {
                     setFormData(item);
                     setFormVisible(true);
