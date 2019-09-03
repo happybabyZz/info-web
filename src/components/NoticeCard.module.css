@@ -9,6 +9,7 @@
 
 .content {
   margin: 12px 0 12px 0;
+  white-space: pre-wrap;
 }
 
 .files {
