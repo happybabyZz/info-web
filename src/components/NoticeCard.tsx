@@ -5,6 +5,7 @@ import moment from 'moment';
 import { CardProps } from 'antd/lib/card';
 import { File } from '../types/models';
 import axios from 'axios';
+import FileSaver from 'file-saver';
 
 export interface NoticeCardProps extends CardProps {
   title: string;
@@ -16,6 +17,7 @@ export interface NoticeCardProps extends CardProps {
 
 const NoticeCard: React.FC<NoticeCardProps> = props => {
   const { title, content, files, updatedAt, onEditPress, ...restProps } = props;
+
   return (
     <Card className={styles.card} title={title} hoverable {...restProps}>
       <Typography.Text className={styles.content}>{content}</Typography.Text>
@@ -29,9 +31,12 @@ const NoticeCard: React.FC<NoticeCardProps> = props => {
               shape="round"
               icon="download"
               size="small"
-              href={axios.defaults.baseURL + file.url}
-              target="_blank"
-              download={file.filename}
+              onClick={() => {
+                FileSaver.saveAs(
+                  axios.defaults.baseURL + file.url,
+                  file.filename
+                );
+              }}
             >
               {file.filename}
             </Button>
