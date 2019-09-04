@@ -120,7 +120,21 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
       title: '院系',
       dataIndex: 'department',
       key: 'department',
-      ...getColumnSearchProps('department', '院系')
+      filters: [
+        {
+          text: '电子系',
+          value: '电子系'
+        },
+        {
+          text: '微纳电子系',
+          value: '微纳电子系'
+        },
+        {
+          text: '医学院',
+          value: '医学院'
+        }
+      ],
+      onFilter: (value, record) => record.department === value
     },
     {
       title: '申请人数',
