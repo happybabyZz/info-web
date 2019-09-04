@@ -40,6 +40,7 @@ export interface MentorApplicationPageProps {
 type MentorInfo = Partial<User> & {
   totalApplicants: number;
   available: boolean;
+  matched: number;
 };
 
 const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
@@ -156,6 +157,64 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
           申请
         </Button>
       )
+    }
+  ];
+
+  const columnsForCounselor: TableProps<MentorInfo>['columns'] = [
+    {
+      title: '姓名',
+      dataIndex: 'name',
+      key: 'name',
+      ...getColumnSearchProps('name', '姓名')
+    },
+    {
+      title: '院系',
+      dataIndex: 'department',
+      key: 'department',
+      filters: [
+        {
+          text: '电子系',
+          value: '电子系'
+        },
+        {
+          text: '微纳电子系',
+          value: '微纳电子系'
+        },
+        {
+          text: '医学院',
+          value: '医学院'
+        }
+      ],
+      onFilter: (value, record) => record.department === value
+    },
+    {
+      title: '申请人数',
+      dataIndex: 'totalApplicants',
+      key: 'totalApplicants',
+      sorter: (a, b) => a.totalApplicants - b.totalApplicants
+    },
+    {
+      title: '匹配人数',
+      dataIndex: 'matched',
+      key: 'matched',
+      sorter: (a, b) => a.matched - b.matched
+    },
+    {
+      title: '正在接收',
+      dataIndex: 'available',
+      key: 'available',
+      filters: [
+        {
+          text: '是',
+          value: 'true'
+        },
+        {
+          text: '否',
+          value: 'false'
+        }
+      ],
+      onFilter: (value, record) => record.available.toString() === value,
+      render: (text, record) => (record.available ? '是' : '否')
     }
   ];
 
@@ -430,7 +489,7 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
   const [mentorListLoading, setMentorListLoading] = useState(false);
 
   useEffect(() => {
-    if (user.group === 'student') {
+    if (user.group === 'student' || user.role === 'counselor') {
       setMentorListLoading(true);
 
       axios
@@ -450,6 +509,7 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
                       }
                       nodes {
                         id
+                        status
                       }
                     }
                   }
@@ -494,7 +554,10 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
                   key: teacher.id,
                   totalApplicants:
                     data.mentor_application_aggregate.aggregate.count,
-                  available: availableData.mentor_available[0].available
+                  available: availableData.mentor_available[0].available,
+                  matched: data.mentor_application_aggregate.nodes.filter(
+                    (i: MentorApplication) => i.status === 'approved'
+                  ).length
                 };
               } else {
                 return {
@@ -502,7 +565,10 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
                   key: teacher.id,
                   totalApplicants:
                     data.mentor_application_aggregate.aggregate.count,
-                  available: true
+                  available: true,
+                  matched: data.mentor_application_aggregate.nodes.filter(
+                    (i: MentorApplication) => i.status === 'approved'
+                  ).length
                 };
               }
             })
@@ -516,7 +582,7 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
           setMentorListLoading(false);
         });
     }
-  }, [user.group]);
+  }, [user.group, user.role]);
 
   const handleApplicationApprove = (
     checked: boolean,
@@ -632,127 +698,133 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
           <p>2019-09-17 00:00 ~ 2019-09-22 23:59</p>
         </Timeline.Item>
       </Timeline>
-      <>
-        <Typography.Title level={2}>已申请</Typography.Title>
-        <div className={styles.table}>
-          {user.group === 'student' && (
-            <Spin style={{ margin: 24 }} spinning={applicationLoading}>
-              {applicationData &&
-              applicationData.mentor_application &&
-              applicationData.mentor_application.length !== 0 &&
-              mentor ? (
-                <Descriptions bordered size="small">
-                  <Descriptions.Item label="导师姓名" span={2}>
-                    {mentor!.name}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="导师院系">
-                    {mentor!.department}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="申请时间" span={2}>
-                    {moment(
-                      applicationData.mentor_application[0].created_at
-                    ).format('llll')}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="申请状态">
-                    {applicationData.mentor_application[0].status ===
-                    'submitted' ? (
-                      <Badge status="processing" text="已提交" />
-                    ) : applicationData.mentor_application[0].status ===
-                      'approved' ? (
-                      <Badge status="success" text="已通过" />
-                    ) : (
-                      <Badge status="error" text="未通过" />
-                    )}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="申请陈述" span={3}>
-                    <Typography.Text style={{ wordWrap: 'break-word' }}>
-                      {applicationData.mentor_application[0].statement}
-                    </Typography.Text>
-                    <br />
-                    <br />
-                    <Button
-                      onClick={() => {
-                        setSelectedMentor(mentor);
-                        setFormData(applicationData.mentor_application[0]);
-                        setFormVisible(true);
-                      }}
-                    >
-                      编辑
-                    </Button>
-                  </Descriptions.Item>
-                </Descriptions>
-              ) : (
-                <Empty />
-              )}
-            </Spin>
-          )}
-          {user.group === 'teacher' && (
-            <div>
-              <Switch
-                loading={updateMentorAvailableLoading || mentorAvailableLoading}
-                checkedChildren="正在接收申请"
-                unCheckedChildren="停止接收申请"
-                checked={mentorAvailable}
-                onChange={checked => handleMentorAvailable(checked)}
-              />
-              <List
-                loading={applicationLoading}
-                dataSource={
-                  applicationData && students.length !== 0
-                    ? applicationData.mentor_application
-                    : []
-                }
-                renderItem={item => {
-                  const student = students.find(i => i.id === item.student_id)!;
-                  return (
-                    <Descriptions
-                      style={{ margin: '24px auto' }}
-                      key={item.id}
-                      bordered
-                      size="small"
-                    >
-                      <Descriptions.Item label="学生姓名" span={2}>
-                        {student.name}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="学生院系">
-                        {student.department}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="申请时间" span={2}>
-                        {moment(item.created_at).format('llll')}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="申请状态">
-                        {item.status === 'submitted' ? (
-                          <Badge status="processing" text="已提交" />
-                        ) : item.status === 'approved' ? (
-                          <Badge status="success" text="已通过" />
-                        ) : (
-                          <Badge status="error" text="未通过" />
-                        )}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="申请陈述" span={3}>
-                        <Typography.Text style={{ wordWrap: 'break-word' }}>
-                          {item.statement}
-                        </Typography.Text>
-                        <br />
-                        <br />
-                        <Switch
-                          loading={updateApplicationStatusLoading}
-                          checkedChildren="通过"
-                          unCheckedChildren="拒绝"
-                          defaultChecked={item.status === 'approved'}
-                          onChange={checked =>
-                            handleApplicationApprove(checked, item)
-                          }
-                        />
-                      </Descriptions.Item>
-                    </Descriptions>
-                  );
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </>
+      {(user.group === 'student' || user.group === 'teacher') && (
+        <>
+          <Typography.Title level={2}>已申请</Typography.Title>
+          <div className={styles.table}>
+            {user.group === 'student' && (
+              <Spin style={{ margin: 24 }} spinning={applicationLoading}>
+                {applicationData &&
+                applicationData.mentor_application &&
+                applicationData.mentor_application.length !== 0 &&
+                mentor ? (
+                  <Descriptions bordered size="small">
+                    <Descriptions.Item label="导师姓名" span={2}>
+                      {mentor!.name}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="导师院系">
+                      {mentor!.department}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="申请时间" span={2}>
+                      {moment(
+                        applicationData.mentor_application[0].created_at
+                      ).format('llll')}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="申请状态">
+                      {applicationData.mentor_application[0].status ===
+                      'submitted' ? (
+                        <Badge status="processing" text="已提交" />
+                      ) : applicationData.mentor_application[0].status ===
+                        'approved' ? (
+                        <Badge status="success" text="已通过" />
+                      ) : (
+                        <Badge status="error" text="未通过" />
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="申请陈述" span={3}>
+                      <Typography.Text style={{ wordWrap: 'break-word' }}>
+                        {applicationData.mentor_application[0].statement}
+                      </Typography.Text>
+                      <br />
+                      <br />
+                      <Button
+                        onClick={() => {
+                          setSelectedMentor(mentor);
+                          setFormData(applicationData.mentor_application[0]);
+                          setFormVisible(true);
+                        }}
+                      >
+                        编辑
+                      </Button>
+                    </Descriptions.Item>
+                  </Descriptions>
+                ) : (
+                  <Empty />
+                )}
+              </Spin>
+            )}
+            {user.group === 'teacher' && (
+              <div>
+                <Switch
+                  loading={
+                    updateMentorAvailableLoading || mentorAvailableLoading
+                  }
+                  checkedChildren="正在接收申请"
+                  unCheckedChildren="停止接收申请"
+                  checked={mentorAvailable}
+                  onChange={checked => handleMentorAvailable(checked)}
+                />
+                <List
+                  loading={applicationLoading}
+                  dataSource={
+                    applicationData && students.length !== 0
+                      ? applicationData.mentor_application
+                      : []
+                  }
+                  renderItem={item => {
+                    const student = students.find(
+                      i => i.id === item.student_id
+                    )!;
+                    return (
+                      <Descriptions
+                        style={{ margin: '24px auto' }}
+                        key={item.id}
+                        bordered
+                        size="small"
+                      >
+                        <Descriptions.Item label="学生姓名" span={2}>
+                          {student.name}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="学生院系">
+                          {student.department}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="申请时间" span={2}>
+                          {moment(item.created_at).format('llll')}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="申请状态">
+                          {item.status === 'submitted' ? (
+                            <Badge status="processing" text="已提交" />
+                          ) : item.status === 'approved' ? (
+                            <Badge status="success" text="已通过" />
+                          ) : (
+                            <Badge status="error" text="未通过" />
+                          )}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="申请陈述" span={3}>
+                          <Typography.Text style={{ wordWrap: 'break-word' }}>
+                            {item.statement}
+                          </Typography.Text>
+                          <br />
+                          <br />
+                          <Switch
+                            loading={updateApplicationStatusLoading}
+                            checkedChildren="通过"
+                            unCheckedChildren="拒绝"
+                            defaultChecked={item.status === 'approved'}
+                            onChange={checked =>
+                              handleApplicationApprove(checked, item)
+                            }
+                          />
+                        </Descriptions.Item>
+                      </Descriptions>
+                    );
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </>
+      )}
       {user.group === 'student' && (
         <>
           <Typography.Title level={2}>导师列表</Typography.Title>
@@ -772,6 +844,17 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
             onCreate={handleApplicationCreate}
             data={formData}
             mentor={selectedMentor}
+          />
+        </>
+      )}
+      {user.role === 'counselor' && (
+        <>
+          <Typography.Title level={2}>导师列表</Typography.Title>
+          <Table
+            loading={mentorListLoading}
+            className={styles.table}
+            dataSource={mentorList}
+            columns={columnsForCounselor}
           />
         </>
       )}
