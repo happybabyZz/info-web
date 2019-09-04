@@ -220,7 +220,9 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
         {(user.role === 'counselor' || user.role === 'root') && (
           <Button
             style={{ marginBottom: 12 }}
-            onClick={() => setFormVisible(true)}
+            onClick={() => {
+              setFormVisible(true);
+            }}
           >
             新公告
           </Button>
@@ -359,6 +361,9 @@ const NewNoticeForm: React.FC<NewNoticeFormProps> = props => {
           type: ''
         }))
       );
+    } else {
+      setFiles([]);
+      setFileList([]);
     }
   }, [data]);
 
