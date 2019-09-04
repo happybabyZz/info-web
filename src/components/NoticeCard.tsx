@@ -6,6 +6,7 @@ import { CardProps } from 'antd/lib/card';
 import { File } from '../types/models';
 import axios from 'axios';
 import FileSaver from 'file-saver';
+import Linkify from 'react-linkify';
 
 export interface NoticeCardProps extends CardProps {
   title: string;
@@ -20,7 +21,26 @@ const NoticeCard: React.FC<NoticeCardProps> = props => {
 
   return (
     <Card className={styles.card} title={title} hoverable {...restProps}>
-      <Typography.Text className={styles.content}>{content}</Typography.Text>
+      <Typography.Text className={styles.content}>
+        <Linkify
+          componentDecorator={(
+            decoratedHref: string,
+            decoratedText: string,
+            key: number
+          ) => (
+            <a
+              href={decoratedHref}
+              key={key}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {decoratedText}
+            </a>
+          )}
+        >
+          {content}
+        </Linkify>
+      </Typography.Text>
       <div className={styles.files}>
         {files &&
           files.map(file => (
