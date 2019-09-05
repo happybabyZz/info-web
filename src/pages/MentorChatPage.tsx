@@ -35,7 +35,12 @@ const MentorChatPage: React.FC<MentorChatPageProps> = ({ setPage }) => {
       subscription SubscriptionApplication($id: bigint!) {
         mentor_application(
           where: {
-            _or: [{ student_id: { _eq: $id } }, { mentor_id: { _eq: $id } }]
+            _and: [
+              {
+                _or: [{ student_id: { _eq: $id } }, { mentor_id: { _eq: $id } }]
+              }
+              { status: { _eq: "approved" } }
+            ]
           }
           order_by: { created_at: asc }
         ) {
@@ -113,8 +118,10 @@ const MentorChatPage: React.FC<MentorChatPageProps> = ({ setPage }) => {
           result => !(result instanceof Error)
         );
         setStudents(validResults);
-        setSelectedUser(validResults[0]);
-        setSelectedUserKey(validResults[0].id.toString());
+        if (validResults.length !== 0) {
+          setSelectedUser(validResults[0]);
+          setSelectedUserKey(validResults[0].id.toString());
+        }
         setInfoLoading(false);
       })();
     }
