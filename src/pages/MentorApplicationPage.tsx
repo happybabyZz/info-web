@@ -671,7 +671,11 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
 
   useEffect(() => {
     if (mentorAvailableData && mentorAvailableData.mentor_available) {
-      setMentorAvailable(mentorAvailableData.mentor_available[0].available);
+      setMentorAvailable(
+        mentorAvailableData.mentor_available[0]
+          ? mentorAvailableData.mentor_available[0].available
+          : true
+      );
     }
   }, [mentorAvailableData]);
 
