@@ -449,6 +449,7 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
   }, [applicationData, user.group]);
 
   const [students, setStudents] = useState<User[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
 
   useEffect(() => {
     if (
@@ -457,6 +458,7 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
       applicationData.mentor_application
     ) {
       (async () => {
+        setStudentsLoading(true);
         const results = await Promise.all(
           applicationData.mentor_application.map(async application => {
             const studentId = application.student_id;
@@ -476,6 +478,7 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
           result => !(result instanceof Error)
         );
         setStudents(validResults);
+        setStudentsLoading(false);
       })();
     }
   }, [applicationData, user.group]);
@@ -765,7 +768,7 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
                   onChange={checked => handleMentorAvailable(checked)}
                 />
                 <List
-                  loading={applicationLoading}
+                  loading={applicationLoading || studentsLoading}
                   dataSource={
                     applicationData && students.length !== 0
                       ? applicationData.mentor_application
