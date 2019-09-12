@@ -41,7 +41,6 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
   );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [department, setDepartment] = useState('');
 
   const handleInfoUpdate = async () => {
     if (!username) {
@@ -52,16 +51,11 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
       message.error('请设置密码');
       return false;
     }
-    if (!department) {
-      message.error('请填写院系');
-      return false;
-    }
 
     try {
       await axios.put(`/v1/users/${user.id}`, {
         username,
-        password,
-        department
+        password
       });
       setInfoFormVisible(false);
       sessionStorage.setItem('usernameSet', 'true');
@@ -286,13 +280,6 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
               placeholder="请设置新密码"
               value={password}
               onChange={e => setPassword(e.target.value)}
-            />
-          </Form.Item>
-          <Form.Item required label="院系">
-            <Input
-              placeholder="请补充您的院系，如：电子系"
-              value={department}
-              onChange={e => setDepartment(e.target.value)}
             />
           </Form.Item>
         </Form>
