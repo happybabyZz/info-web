@@ -850,8 +850,8 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
                           <br />
                           <Switch
                             loading={updateApplicationStatusLoading}
-                            checkedChildren="通过"
-                            unCheckedChildren="拒绝"
+                            checkedChildren="已接收该同学"
+                            unCheckedChildren="未接收该同学"
                             defaultChecked={item.status === 'approved'}
                             onChange={checked =>
                               handleApplicationApprove(checked, item)
