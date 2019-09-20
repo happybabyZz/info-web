@@ -78,3 +78,33 @@ export interface Message {
 export interface MessageData {
   mentor_message: Message[];
 }
+
+export type Honor =
+  | '学业优秀奖'
+  | '学习进步奖'
+  | '社会工作优秀奖'
+  | '科技创新优秀奖'
+  | '社会实践优秀奖'
+  | '志愿公益优秀奖'
+  | '体育优秀奖'
+  | '文艺优秀奖'
+  | '综合优秀奖'
+  | '无校级荣誉'
+  | '好读书奖';
+
+export interface HonorApplication {
+  id: string;
+  honor: Honor;
+  student_id: number;
+  statement: string;
+  attachment_url?: string;
+  status: 'submitted' | 'approved' | 'rejected';
+  created_at: Date;
+  created_by: number;
+  updated_at: Date;
+  updated_by: number;
+}
+
+export interface HonorApplicationData {
+  honor_application: HonorApplication[];
+}

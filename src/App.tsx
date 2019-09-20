@@ -29,6 +29,7 @@ import { ApolloProvider } from '@apollo/react-hooks';
 import { client } from './data';
 import AuthRoute from './components/AuthRoute';
 import UserButton from './components/UserButton';
+import ScholarshipApplicationPage from './pages/ScholarshipApplicationPage';
 
 moment.locale('zh-cn');
 
@@ -148,6 +149,15 @@ const App: React.FC = () => {
                           path="/mentors/chats"
                           render={() => (
                             <MentorChatPage setPage={handleMenuSelection} />
+                          )}
+                        />
+                        <Route
+                          exact
+                          path="/scholarships"
+                          render={() => (
+                            <ScholarshipApplicationPage
+                              setPage={handleMenuSelection}
+                            />
                           )}
                         />
                         <Route
