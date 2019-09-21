@@ -565,17 +565,13 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
     <div className={styles.root}>
       <Typography.Title level={2}>关键时间点</Typography.Title>
       <Timeline className={styles.timeline}>
-        <Timeline.Item color="blue">
-          <p>第一阶段：--</p>
-          <p>-- ~ --</p>
+        <Timeline.Item color="green">
+          <p>第一阶段：奖学金荣誉申请</p>
+          <p>2019-09-22 00:00 ~ 2019-09-23 23:59</p>
         </Timeline.Item>
-        <Timeline.Item color="gray">
-          <p>第二阶段：--</p>
-          <p>-- ~ --</p>
-        </Timeline.Item>
-        <Timeline.Item color="gray">
-          <p>第三阶段：--</p>
-          <p>-- ~ --</p>
+        <Timeline.Item color="green">
+          <p>第二阶段：奖学金申请结果公示</p>
+          <p>2019-10-08 00:00 ~ 2019-10-10 23:59</p>
         </Timeline.Item>
       </Timeline>
       <Typography.Title level={2}>荣誉</Typography.Title>
