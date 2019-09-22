@@ -35,30 +35,58 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
   `);
   const user: User = jwtDecode(localData!.token);
 
-  const [infoFormVisible, setInfoFormVisible] = useState(
-    user.username.toString() === user.id.toString() &&
-      !sessionStorage.getItem('usernameSet')
+  const [teacherFormVisible, setTeacherFormVisible] = useState(
+    user.group === 'teacher' &&
+      user.username.toString() === user.id.toString() &&
+      !sessionStorage.getItem('infoUpdated')
+  );
+  const [studentFormVisible, setStudentFormVisible] = useState(
+    user.group !== 'teacher' &&
+      (!user.class || !user.department) &&
+      !sessionStorage.getItem('infoUpdated')
   );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [department, setDepartment] = useState('');
+  const [_class, setClass] = useState('');
 
   const handleInfoUpdate = async () => {
-    if (!username) {
-      message.error('请填写用户名');
-      return false;
-    }
-    if (!password) {
-      message.error('请设置密码');
-      return false;
+    if (user.group === 'teacher') {
+      if (!username) {
+        message.error('请填写用户名');
+        return false;
+      }
+      if (!password) {
+        message.error('请设置密码');
+        return false;
+      }
+    } else {
+      if (!department) {
+        message.error('请填写院系');
+        return false;
+      }
+      if (!_class) {
+        message.error('请填写班级');
+        return false;
+      }
     }
 
     try {
-      await axios.put(`/v1/users/${user.id}`, {
-        username,
-        password
-      });
-      setInfoFormVisible(false);
-      sessionStorage.setItem('usernameSet', 'true');
+      if (user.group === 'teacher') {
+        await axios.put(`/v1/users/${user.id}`, {
+          username,
+          password
+        });
+        setTeacherFormVisible(false);
+      } else {
+        await axios.put(`/v1/users/${user.id}`, {
+          department,
+          class: _class
+        });
+        setStudentFormVisible(false);
+      }
+
+      sessionStorage.setItem('infoUpdated', 'true');
       message.success('信息更新成功');
     } catch {
       message.error('信息更新失败');
@@ -255,7 +283,7 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
         data={formData}
       />
       <Modal
-        visible={infoFormVisible}
+        visible={teacherFormVisible}
         title="重要信息补全"
         centered
         closable={false}
@@ -280,6 +308,36 @@ const NoticePage: React.FC<NoticePageProps> = ({ setPage }) => {
               placeholder="请设置新密码"
               value={password}
               onChange={e => setPassword(e.target.value)}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        visible={studentFormVisible}
+        title="重要信息补全"
+        centered
+        closable={false}
+        onOk={handleInfoUpdate}
+        maskClosable={false}
+        footer={[
+          <Button key="submit" type="primary" onClick={handleInfoUpdate}>
+            更新
+          </Button>
+        ]}
+      >
+        <Form layout="vertical">
+          <Form.Item required label="院系">
+            <Input
+              placeholder="简写，如：电子系"
+              value={department}
+              onChange={e => setDepartment(e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item required label="班级">
+            <Input.Password
+              placeholder="如：无61"
+              value={_class}
+              onChange={e => setClass(e.target.value)}
             />
           </Form.Item>
         </Form>
