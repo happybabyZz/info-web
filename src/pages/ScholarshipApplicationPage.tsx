@@ -579,79 +579,77 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
         <>
           <Button onClick={() => setFormVisible(true)}>申请荣誉</Button>
           <div className={styles.table}>
-            {user.group === 'student' && (
-              <List
-                loading={applicationLoading}
-                dataSource={
-                  applicationData ? applicationData.honor_application : []
-                }
-                renderItem={item => {
-                  return (
-                    <Descriptions
-                      style={{ margin: '24px auto' }}
-                      key={item.id}
-                      bordered
-                      size="small"
-                    >
-                      <Descriptions.Item label="荣誉类型" span={2}>
-                        {item.honor}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="申请状态">
-                        {item.status === 'submitted' ? (
-                          <Badge status="processing" text="已提交" />
-                        ) : item.status === 'approved' ? (
-                          <Badge status="success" text="已通过" />
-                        ) : (
-                          <Badge status="error" text="未通过" />
-                        )}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="申请陈述" span={3}>
-                        <Typography.Text
-                          style={{
-                            wordWrap: 'break-word',
-                            whiteSpace: 'pre-wrap'
-                          }}
+            <List
+              loading={applicationLoading}
+              dataSource={
+                applicationData ? applicationData.honor_application : []
+              }
+              renderItem={item => {
+                return (
+                  <Descriptions
+                    style={{ margin: '24px auto' }}
+                    key={item.id}
+                    bordered
+                    size="small"
+                  >
+                    <Descriptions.Item label="荣誉类型" span={2}>
+                      {item.honor}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="申请状态">
+                      {item.status === 'submitted' ? (
+                        <Badge status="processing" text="已提交" />
+                      ) : item.status === 'approved' ? (
+                        <Badge status="success" text="已通过" />
+                      ) : (
+                        <Badge status="error" text="未通过" />
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="申请陈述" span={3}>
+                      <Typography.Text
+                        style={{
+                          wordWrap: 'break-word',
+                          whiteSpace: 'pre-wrap'
+                        }}
+                      >
+                        {item.statement}
+                      </Typography.Text>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="申请材料" span={2}>
+                      {item.attachment_url && isUrl(item.attachment_url) ? (
+                        <a
+                          href={item.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
-                          {item.statement}
-                        </Typography.Text>
-                      </Descriptions.Item>
-                      <Descriptions.Item label="申请材料" span={2}>
-                        {item.attachment_url && isUrl(item.attachment_url) ? (
-                          <a
-                            href={item.attachment_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {item.attachment_url}
-                          </a>
-                        ) : (
-                          item.attachment_url || '无'
-                        )}
-                      </Descriptions.Item>
-                      <Descriptions.Item label="操作">
-                        <Button
-                          style={{ margin: 5 }}
-                          disabled={item.status !== 'submitted'}
-                          onClick={() => {
-                            setFormData(item);
-                            setFormVisible(true);
-                          }}
-                        >
-                          编辑
-                        </Button>
-                        <Button
-                          style={{ margin: 5 }}
-                          type="danger"
-                          onClick={() => handleApplicationDelete(item.id)}
-                        >
-                          删除
-                        </Button>
-                      </Descriptions.Item>
-                    </Descriptions>
-                  );
-                }}
-              />
-            )}
+                          {item.attachment_url}
+                        </a>
+                      ) : (
+                        item.attachment_url || '无'
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="操作">
+                      <Button
+                        style={{ margin: 5 }}
+                        disabled={item.status !== 'submitted'}
+                        onClick={() => {
+                          setFormData(item);
+                          setFormVisible(true);
+                        }}
+                      >
+                        编辑
+                      </Button>
+                      <Button
+                        style={{ margin: 5 }}
+                        type="danger"
+                        onClick={() => handleApplicationDelete(item.id)}
+                      >
+                        删除
+                      </Button>
+                    </Descriptions.Item>
+                  </Descriptions>
+                );
+              }}
+            />
           </div>
         </>
       )}
