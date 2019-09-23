@@ -27,6 +27,39 @@ import Table, {
 } from 'antd/lib/table';
 import { client } from '../data';
 import axios from 'axios';
+import { getStatusText } from '../helpers';
+
+const { Option } = Select;
+
+const honorSelectOptions = [
+  '学业优秀奖',
+  '学习进步奖',
+  '社会工作优秀奖',
+  '科技创新优秀奖',
+  '社会实践优秀奖',
+  '志愿公益优秀奖',
+  '体育优秀奖',
+  '文艺优秀奖',
+  '综合优秀奖',
+  '无校级荣誉',
+  '好读书奖'
+].map(i => (
+  <Option key={i} value={i}>
+    {i}
+  </Option>
+));
+
+const classes = [6, 7, 8, 9].reduce<string[]>(
+  (pre, year) => [
+    ...pre,
+    ...[1, 2, 3, 4, 5, 6, 7, 8].map(_class => `无${year}${_class}`)
+  ],
+  []
+);
+
+const exportSelectOptions = classes.map(_class => (
+  <Option value={_class}>{_class}</Option>
+));
 
 export interface ScholarshipApplicationPageProps {
   setPage: ({ key }: { key: string }) => void;
@@ -89,7 +122,7 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
     if (!addApplicationError && addApplicationData) {
       message.success('申请提交成功');
 
-      setFormVisible(false);
+      setApplicationFormVisible(false);
     }
   }, [addApplicationError, addApplicationData]);
 
@@ -130,7 +163,7 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
     }
     if (!updateApplicationError && updateApplicationData) {
       message.success('申请编辑成功');
-      setFormVisible(false);
+      setApplicationFormVisible(false);
     }
   }, [updateApplicationError, updateApplicationData]);
 
@@ -192,7 +225,7 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
     }
   }, [applicationSubscriptionError]);
 
-  const [formVisible, setFormVisible] = useState(false);
+  const [applicationFormVisible, setApplicationFormVisible] = useState(false);
   const [formData, setFormData] = useState<HonorApplication>();
 
   const handleApplicationCreate = (
@@ -389,12 +422,7 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
         }
       ],
       onFilter: (value, record) => record.status === value,
-      render: (text, record) =>
-        text === 'submitted'
-          ? '已提交'
-          : text === 'rejected'
-          ? '未通过'
-          : '已通过'
+      render: (text, record) => getStatusText(text)
     },
     {
       title: '操作',
@@ -561,6 +589,54 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
     setSearchText('');
   };
 
+  const [exportFormVisible, setExportFormVisible] = useState(false);
+  const [exportHonor, setExportHonor] = useState('');
+  const [exportClasses, setExportClasses] = useState<string[]>([]);
+  const [exportLoading, setExportLoading] = useState(false);
+
+  const handleApplicationExport = async () => {
+    if (!exportHonor || exportClasses.length === 0) {
+      message.info('请选择筛选条件');
+      return;
+    }
+
+    setExportLoading(true);
+
+    const Xlsx = await import('xlsx');
+
+    const applications = applicationsForCounselors
+      .filter(
+        application =>
+          application.honor === exportHonor &&
+          exportClasses.some(_class => application.class.includes(_class))
+      )
+      .map(i => [
+        i.student_id,
+        i.name,
+        i.class,
+        exportHonor,
+        getStatusText(i.status)
+      ]);
+
+    if (applications.length === 0) {
+      message.info('未找到符合条件的申请');
+      setExportLoading(false);
+      return;
+    }
+
+    const head = ['学号', '姓名', '班级', '荣誉类型', '申请状态'];
+
+    applications.unshift(head);
+
+    const worksheet = Xlsx.utils.aoa_to_sheet(applications);
+    const workbook = Xlsx.utils.book_new();
+    Xlsx.utils.book_append_sheet(workbook, worksheet, '荣誉申请');
+    Xlsx.writeFile(workbook, `荣誉申请-${exportHonor}.xlsx`);
+
+    message.success('申请导出成功');
+    setExportLoading(false);
+  };
+
   return (
     <div className={styles.root}>
       <Typography.Title level={2}>关键时间点</Typography.Title>
@@ -577,7 +653,9 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
       <Typography.Title level={2}>荣誉</Typography.Title>
       {user.role !== 'counselor' && (
         <>
-          <Button onClick={() => setFormVisible(true)}>申请荣誉</Button>
+          <Button onClick={() => setApplicationFormVisible(true)}>
+            申请荣誉
+          </Button>
           <div className={styles.table}>
             <List
               loading={applicationLoading}
@@ -633,7 +711,7 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
                         disabled={item.status !== 'submitted'}
                         onClick={() => {
                           setFormData(item);
-                          setFormVisible(true);
+                          setApplicationFormVisible(true);
                         }}
                       >
                         编辑
@@ -654,51 +732,93 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
         </>
       )}
       {user.role === 'counselor' && (
-        <Table
-          loading={applicationsForCounselorsLoading}
-          className={styles.table}
-          dataSource={applicationsForCounselors}
-          columns={honorColumnsForCounselor}
-          rowKey="id"
-          expandedRowRender={record => (
-            <Descriptions key={record.id} size="small">
-              <Descriptions.Item label="申请陈述" span={3}>
-                <Typography.Text
-                  style={{
-                    wordWrap: 'break-word',
-                    whiteSpace: 'pre-wrap'
-                  }}
-                >
-                  {record.statement}
-                </Typography.Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="申请材料" span={3}>
-                {record.attachment_url && isUrl(record.attachment_url) ? (
-                  <a
-                    href={record.attachment_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+        <>
+          <Button
+            style={{ marginBottom: 16 }}
+            onClick={() => setExportFormVisible(true)}
+          >
+            导出申请
+          </Button>
+          <Table
+            loading={applicationsForCounselorsLoading}
+            className={styles.table}
+            dataSource={applicationsForCounselors}
+            columns={honorColumnsForCounselor}
+            rowKey="id"
+            expandedRowRender={record => (
+              <Descriptions key={record.id} size="small">
+                <Descriptions.Item label="申请陈述" span={3}>
+                  <Typography.Text
+                    style={{
+                      wordWrap: 'break-word',
+                      whiteSpace: 'pre-wrap'
+                    }}
                   >
-                    {record.attachment_url}
-                  </a>
-                ) : (
-                  record.attachment_url || '无'
-                )}
-              </Descriptions.Item>
-            </Descriptions>
-          )}
-        />
+                    {record.statement}
+                  </Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="申请材料" span={3}>
+                  {record.attachment_url && isUrl(record.attachment_url) ? (
+                    <a
+                      href={record.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {record.attachment_url}
+                    </a>
+                  ) : (
+                    record.attachment_url || '无'
+                  )}
+                </Descriptions.Item>
+              </Descriptions>
+            )}
+          />
+        </>
       )}
       {user.role !== 'counselor' && (
         <WrappedNewApplicationForm
-          visible={formVisible}
+          visible={applicationFormVisible}
           loading={addApplicationLoading || updateApplicationLoading}
           onCancel={() => {
-            setFormVisible(false);
+            setApplicationFormVisible(false);
           }}
           onCreate={handleApplicationCreate}
           data={formData}
         />
+      )}
+      {user.role === 'counselor' && (
+        <Modal
+          visible={exportFormVisible}
+          title="导出申请"
+          centered
+          onOk={handleApplicationExport}
+          onCancel={() => setExportFormVisible(false)}
+          maskClosable={false}
+          confirmLoading={exportLoading}
+        >
+          <Form layout="vertical">
+            <Form.Item required label="荣誉">
+              <Select<string>
+                placeholder="荣誉类型"
+                onChange={value => setExportHonor(value)}
+              >
+                {honorSelectOptions}
+              </Select>
+            </Form.Item>
+            <Form.Item required label="班级">
+              <Select<string[]>
+                mode="multiple"
+                placeholder="选择需要导出的班级（可多选）"
+                onChange={value => setExportClasses(value)}
+              >
+                {exportSelectOptions}
+              </Select>
+            </Form.Item>
+            <Typography.Text>
+              申请状态可选：已提交，未通过，已通过。届时上传结果的申请状态一栏只允许这三个值，否则系统会拒绝解析上传表格。
+            </Typography.Text>
+          </Form>
+        </Modal>
       )}
     </div>
   );
@@ -735,29 +855,7 @@ const NewApplicationForm: React.FC<NewApplicationFormProps> = props => {
           {getFieldDecorator('honor', {
             initialValue: data && data.honor,
             rules: [{ required: true, message: '请选择所申请的荣誉类型' }]
-          })(
-            <Select placeholder="荣誉类型">
-              <Select.Option value="学业优秀奖">学业优秀奖</Select.Option>
-              <Select.Option value="学习进步奖">学习进步奖</Select.Option>
-              <Select.Option value="社会工作优秀奖">
-                社会工作优秀奖
-              </Select.Option>
-              <Select.Option value="科技创新优秀奖">
-                科技创新优秀奖
-              </Select.Option>
-              <Select.Option value="社会实践优秀奖">
-                社会实践优秀奖
-              </Select.Option>
-              <Select.Option value="志愿公益优秀奖">
-                志愿公益优秀奖
-              </Select.Option>
-              <Select.Option value="体育优秀奖">体育优秀奖</Select.Option>
-              <Select.Option value="文艺优秀奖">文艺优秀奖</Select.Option>
-              <Select.Option value="综合优秀奖">综合优秀奖</Select.Option>
-              <Select.Option value="无校级荣誉">无校级荣誉</Select.Option>
-              <Select.Option value="好读书奖">好读书奖</Select.Option>
-            </Select>
-          )}
+          })(<Select placeholder="荣誉类型">{honorSelectOptions}</Select>)}
         </Form.Item>
         <Form.Item label="申请陈述">
           {getFieldDecorator('statement', {
