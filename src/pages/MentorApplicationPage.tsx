@@ -452,20 +452,12 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
       setMentorInfoLoading(true);
       (async () => {
         try {
-          const teachers = await Promise.all(
-            applications.map(async application => {
-              const teacherId = application.mentor_id;
-              try {
-                const response = await axios.get(
-                  `/v1/users/${teacherId}?detailInfo=true`
-                );
-                return response.data as MentorInfo;
-              } catch (err) {
-                throw err;
-              }
-            })
-          );
-          setAppliedMentors(teachers.filter(i => i !== undefined));
+          const teacherIds = applications.map(i => i.mentor_id);
+          const teachers = (await axios.post(`/v1/users?detailInfo=true`, {
+            ids: teacherIds
+          })).data;
+
+          setAppliedMentors(teachers);
         } catch {
           message.error('申请加载失败');
         } finally {
@@ -486,26 +478,21 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
     ) {
       (async () => {
         setStudentsLoading(true);
-        const results = await Promise.all(
-          applicationData.mentor_application.map(async application => {
-            const studentId = application.student_id;
 
-            try {
-              const response = await axios.get(
-                `/v1/users/${studentId}?detailInfo=true`
-              );
-              return response.data;
-            } catch (err) {
-              return err;
-            }
-          })
+        const studentIds = applicationData.mentor_application.map(
+          i => i.student_id
         );
+        try {
+          const results = (await axios.post(`/v1/users?detailInfo=true`, {
+            ids: studentIds
+          })).data;
 
-        const validResults = results.filter(
-          result => !(result instanceof Error)
-        );
-        setStudents(validResults);
-        setStudentsLoading(false);
+          setStudents(results);
+        } catch {
+          message.error('学生信息加载失败');
+        } finally {
+          setStudentsLoading(false);
+        }
       })();
     }
   }, [applicationData, user.group]);

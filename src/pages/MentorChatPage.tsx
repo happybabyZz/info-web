@@ -99,30 +99,25 @@ const MentorChatPage: React.FC<MentorChatPageProps> = ({ setPage }) => {
       (async () => {
         setInfoLoading(true);
 
-        const results = await Promise.all<User>(
-          applicationData.mentor_application.map(async application => {
-            const studentId = application.student_id;
-
-            try {
-              const response = await axios.get(
-                `/v1/users/${studentId}?detailInfo=true`
-              );
-              return response.data as User;
-            } catch (err) {
-              return err;
-            }
-          })
+        const studentIds = applicationData.mentor_application.map(
+          i => i.student_id
         );
 
-        const validResults = results.filter(
-          result => !(result instanceof Error)
-        );
-        setStudents(validResults);
-        if (validResults.length !== 0) {
-          setSelectedUser(validResults[0]);
-          setSelectedUserKey(validResults[0].id.toString());
+        try {
+          const results = (await axios.post(`/v1/users?detailInfo=true`, {
+            ids: studentIds
+          })).data;
+
+          setStudents(results);
+          if (results.length !== 0) {
+            setSelectedUser(results[0]);
+            setSelectedUserKey(results[0].id.toString());
+          }
+        } catch {
+          message.error('学生信息加载失败');
+        } finally {
+          setInfoLoading(false);
         }
-        setInfoLoading(false);
       })();
     }
   }, [applicationData, user.group]);

@@ -474,26 +474,27 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
           }
 
           const applications = data.honor_application;
-          const applicationsWithInfo = await Promise.all<HonorApplicationInfo>(
-            applications.map(async i => {
-              try {
-                const response = await axios.get<User>(
-                  `/v1/users/${i.student_id}?detailInfo=true`
-                );
-                return {
-                  ...i,
-                  ...response.data,
-                  id: i.id
-                };
-              } catch (err) {
-                return err;
-              }
-            })
-          );
+          const studentIds = applications.map(i => i.student_id);
 
-          setApplicationsForCounselors(
-            applicationsWithInfo.filter(result => !(result instanceof Error))
-          );
+          try {
+            const results = (await axios.post(`/v1/users?detailInfo=true`, {
+              ids: studentIds
+            })).data;
+
+            const applicationsWithInfo = applications.map(
+              (application, index) => {
+                return {
+                  ...application,
+                  ...results[index],
+                  id: application.id
+                };
+              }
+            );
+
+            setApplicationsForCounselors(applicationsWithInfo);
+          } catch (err) {
+            throw err;
+          }
         } catch {
           message.error('申请加载失败');
         } finally {
