@@ -27,7 +27,7 @@ import Table, {
 } from 'antd/lib/table';
 import { client } from '../data';
 import axios from 'axios';
-import { getStatusText } from '../helpers';
+import groupBy from 'lodash.groupby';
 
 const { Option } = Select;
 
@@ -477,19 +477,21 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
           const studentIds = applications.map(i => i.student_id);
 
           try {
-            const results = (await axios.post(`/v1/users?detailInfo=true`, {
-              ids: studentIds
-            })).data;
-
-            const applicationsWithInfo = applications.map(
-              (application, index) => {
-                return {
-                  ...application,
-                  ...results[index],
-                  id: application.id
-                };
+            const responses = (await axios.post(
+              `/v1/users/details?detailInfo=true`,
+              {
+                ids: studentIds
               }
-            );
+            )).data;
+            const results = groupBy(responses, 'id');
+
+            const applicationsWithInfo = applications.map(application => {
+              return {
+                ...application,
+                ...results[application.student_id][0],
+                id: application.id
+              };
+            });
 
             setApplicationsForCounselors(applicationsWithInfo);
           } catch (err) {
@@ -616,7 +618,9 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
         i.name,
         i.class,
         exportHonor,
-        getStatusText(i.status)
+        getStatusText(i.status),
+        i.statement,
+        i.attachment_url
       ]);
 
     if (applications.length === 0) {
@@ -625,7 +629,15 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
       return;
     }
 
-    const head = ['学号', '姓名', '班级', '荣誉类型', '申请状态'];
+    const head = [
+      '学号',
+      '姓名',
+      '班级',
+      '荣誉类型',
+      '申请状态',
+      '申请陈述',
+      '申请材料'
+    ];
 
     applications.unshift(head);
 
