@@ -12,7 +12,8 @@ import {
   Input,
   Badge,
   Icon,
-  Switch
+  Switch,
+  Progress
 } from 'antd';
 import { useQuery, useMutation, useSubscription } from '@apollo/react-hooks';
 import { User, HonorApplicationData, HonorApplication } from '../types/models';
@@ -27,23 +28,13 @@ import Table, {
 } from 'antd/lib/table';
 import { client } from '../data';
 import axios from 'axios';
+import { getStatusText, getStatusValue } from '../helpers';
+import { honors } from '../configs';
 import groupBy from 'lodash.groupby';
 
 const { Option } = Select;
 
-const honorSelectOptions = [
-  '学业优秀奖',
-  '学习进步奖',
-  '社会工作优秀奖',
-  '科技创新优秀奖',
-  '社会实践优秀奖',
-  '志愿公益优秀奖',
-  '体育优秀奖',
-  '文艺优秀奖',
-  '综合优秀奖',
-  '无校级荣誉',
-  '好读书奖'
-].map(i => (
+const honorSelectOptions = honors.map(i => (
   <Option key={i} value={i}>
     {i}
   </Option>
@@ -58,7 +49,9 @@ const classes = [6, 7, 8, 9].reduce<string[]>(
 );
 
 const exportSelectOptions = classes.map(_class => (
-  <Option value={_class}>{_class}</Option>
+  <Option key={_class} value={_class}>
+    {_class}
+  </Option>
 ));
 
 export interface ScholarshipApplicationPageProps {
@@ -235,7 +228,6 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
       if (err) {
         return;
       } else {
-        console.log(values);
         if (formData) {
           updateApplication({
             variables: {
@@ -355,52 +347,7 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
       title: '荣誉类型',
       dataIndex: 'honor',
       key: 'honor',
-      filters: [
-        {
-          text: '学业优秀奖',
-          value: '学业优秀奖'
-        },
-        {
-          text: '学习进步奖',
-          value: '学习进步奖'
-        },
-        {
-          text: '社会工作优秀奖',
-          value: '社会工作优秀奖'
-        },
-        {
-          text: '科技创新优秀奖',
-          value: '科技创新优秀奖'
-        },
-        {
-          text: '社会实践优秀奖',
-          value: '社会实践优秀奖'
-        },
-        {
-          text: '志愿公益优秀奖',
-          value: '志愿公益优秀奖'
-        },
-        {
-          text: '体育优秀奖',
-          value: '体育优秀奖'
-        },
-        {
-          text: '文艺优秀奖',
-          value: '文艺优秀奖'
-        },
-        {
-          text: '综合优秀奖',
-          value: '综合优秀奖'
-        },
-        {
-          text: '无校级荣誉',
-          value: '无校级荣誉'
-        },
-        {
-          text: '好读书奖',
-          value: '好读书奖'
-        }
-      ],
+      filters: honors.map(honor => ({ text: honor, value: honor })),
       onFilter: (value, record) => record.honor === value
     },
     {
@@ -650,6 +597,112 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
     setExportLoading(false);
   };
 
+  const [importFormVisible, setImportFormVisible] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [fileList, setFileList] = useState<FileList | null>(null);
+  const [parseProgress, setParseProgress] = useState(0);
+
+  const handleApplicationImport = async () => {
+    if (!fileList || fileList.length !== 1) {
+      message.info('请选择文件');
+      return;
+    }
+    const file = fileList[0];
+
+    setImportLoading(true);
+
+    const Xlsx = await import('xlsx');
+
+    try {
+      const reader = new FileReader();
+      const data = await new Promise<ArrayBuffer>((resolve, reject) => {
+        reader.onerror = () => {
+          reader.abort();
+          reject();
+        };
+
+        reader.onload = () => {
+          resolve(reader.result as ArrayBuffer);
+        };
+
+        reader.readAsBinaryString(file);
+      });
+      const workbook = Xlsx.read(data, { type: 'binary' });
+      const firstWorksheet = workbook.Sheets[workbook.SheetNames[0]];
+
+      const applications = (Xlsx.utils.sheet_to_json(firstWorksheet, {
+        header: 1
+      }) as (string | number)[][]).filter(i => i.length !== 0);
+      const head = applications.shift();
+      if (!head || head.length < 5) {
+        throw new Error('Parse error');
+      }
+
+      let count = 0;
+      await Promise.all(
+        applications.map(async application => {
+          try {
+            const id = application[0];
+            const honor = application[3].toString().trim();
+            const status = application[4].toString().trim();
+
+            if (
+              !['已提交', '未通过', '已通过'].includes(status) ||
+              !honors.includes(honor)
+            ) {
+              throw new Error('Parse error');
+            }
+
+            const { errors } = await client.mutate({
+              mutation: gql`
+                mutation updateApplicationStatus(
+                  $studentId: bigint!
+                  $honor: String!
+                  $status: String!
+                  $updatedBy: bigint!
+                ) {
+                  update_honor_application(
+                    where: {
+                      _and: [
+                        { student_id: { _eq: $studentId } }
+                        { honor: { _eq: $honor } }
+                      ]
+                    }
+                    _set: { status: $status, updated_by: $updatedBy }
+                  ) {
+                    returning {
+                      id
+                      status
+                    }
+                  }
+                }
+              `,
+              variables: {
+                studentId: id,
+                honor,
+                status: getStatusValue(status),
+                updatedBy: user.id
+              }
+            });
+
+            count++;
+            setParseProgress(Math.round((count / applications.length) * 100));
+
+            if (errors) {
+              throw errors;
+            }
+          } catch (err) {
+            throw err;
+          }
+        })
+      );
+    } catch (err) {
+      message.error('文件解析失败：' + err);
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   return (
     <div className={styles.root}>
       <Typography.Title level={2}>关键时间点</Typography.Title>
@@ -666,7 +719,7 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
       <Typography.Title level={2}>荣誉</Typography.Title>
       {user.role !== 'counselor' && (
         <>
-          <Button onClick={() => setApplicationFormVisible(true)}>
+          <Button disabled onClick={() => setApplicationFormVisible(true)}>
             申请荣誉
           </Button>
           <div className={styles.table}>
@@ -746,12 +799,21 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
       )}
       {user.role === 'counselor' && (
         <>
-          <Button
-            style={{ marginBottom: 16 }}
-            onClick={() => setExportFormVisible(true)}
-          >
-            导出申请
-          </Button>
+          <div style={{ marginBottom: 16 }}>
+            <Button
+              disabled={applicationsForCounselorsLoading}
+              onClick={() => setExportFormVisible(true)}
+            >
+              导出申请
+            </Button>
+            <Button
+              style={{ marginLeft: 8 }}
+              disabled={applicationsForCounselorsLoading}
+              onClick={() => setImportFormVisible(true)}
+            >
+              导入申请
+            </Button>
+          </div>
           <Table
             loading={applicationsForCounselorsLoading}
             className={styles.table}
@@ -800,38 +862,79 @@ const ScholarshipApplicationPage: React.FC<ScholarshipApplicationPageProps> = ({
         />
       )}
       {user.role === 'counselor' && (
-        <Modal
-          visible={exportFormVisible}
-          title="导出申请"
-          centered
-          onOk={handleApplicationExport}
-          onCancel={() => setExportFormVisible(false)}
-          maskClosable={false}
-          confirmLoading={exportLoading}
-        >
-          <Form layout="vertical">
-            <Form.Item required label="荣誉">
-              <Select<string>
-                placeholder="荣誉类型"
-                onChange={value => setExportHonor(value)}
-              >
-                {honorSelectOptions}
-              </Select>
-            </Form.Item>
-            <Form.Item required label="班级">
-              <Select<string[]>
-                mode="multiple"
-                placeholder="选择需要导出的班级（可多选）"
-                onChange={value => setExportClasses(value)}
-              >
-                {exportSelectOptions}
-              </Select>
-            </Form.Item>
-            <Typography.Text>
-              申请状态可选：已提交，未通过，已通过。届时上传结果的申请状态一栏只允许这三个值，否则系统会拒绝解析上传表格。
-            </Typography.Text>
-          </Form>
-        </Modal>
+        <>
+          <Modal
+            visible={exportFormVisible}
+            title="导出申请"
+            centered
+            onOk={handleApplicationExport}
+            onCancel={() => setExportFormVisible(false)}
+            maskClosable={false}
+            confirmLoading={exportLoading}
+          >
+            <Form layout="vertical">
+              <Form.Item required label="荣誉">
+                <Select<string>
+                  placeholder="荣誉类型"
+                  onChange={value => setExportHonor(value)}
+                >
+                  {honorSelectOptions}
+                </Select>
+              </Form.Item>
+              <Form.Item required label="班级">
+                <Select<string[]>
+                  mode="tags"
+                  placeholder="选择需要导出的班级（可多选）"
+                  onChange={value => setExportClasses(value)}
+                >
+                  {exportSelectOptions}
+                </Select>
+              </Form.Item>
+              <Typography.Text>
+                若班级不在下拉菜单内，请手动输入班级名，并回车，结果即会包含该班级的申请。
+                申请状态可选：已提交，未通过，已通过。届时上传结果的申请状态一栏只允许这三个值，否则系统会拒绝解析上传表格。
+              </Typography.Text>
+            </Form>
+          </Modal>
+          <Modal
+            visible={importFormVisible}
+            title="导入申请"
+            centered
+            onOk={handleApplicationImport}
+            onCancel={() => setImportFormVisible(false)}
+            maskClosable={false}
+            confirmLoading={importLoading}
+          >
+            <Typography.Paragraph>
+              上传 Excel 文件以更新申请状态。Excel
+              的格式应与导出文件相同，申请状态只能包含：已提交，未通过，已通过。
+            </Typography.Paragraph>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}
+            >
+              <input
+                id="upload-file"
+                accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                type="file"
+                name="file"
+                onChange={e => setFileList(e.target.files)}
+              />
+              <label htmlFor="upload-file"></label>
+              {parseProgress > 0 && (
+                <Progress
+                  type="circle"
+                  percent={parseProgress}
+                  status="active"
+                />
+              )}
+            </div>
+          </Modal>
+        </>
       )}
     </div>
   );
