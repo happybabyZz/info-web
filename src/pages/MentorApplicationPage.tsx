@@ -453,9 +453,12 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
       (async () => {
         try {
           const teacherIds = applications.map(i => i.mentor_id);
-          const teachers = (await axios.post(`/v1/users?detailInfo=true`, {
-            ids: teacherIds
-          })).data;
+          const teachers = (await axios.post(
+            `/v1/users/details?detailInfo=true`,
+            {
+              ids: teacherIds
+            }
+          )).data;
 
           setAppliedMentors(teachers);
         } catch {
@@ -483,9 +486,12 @@ const MentorApplicationPage: React.FC<MentorApplicationPageProps> = ({
           i => i.student_id
         );
         try {
-          const results = (await axios.post(`/v1/users?detailInfo=true`, {
-            ids: studentIds
-          })).data;
+          const results = (await axios.post(
+            `/v1/users/details?detailInfo=true`,
+            {
+              ids: studentIds
+            }
+          )).data;
 
           setStudents(results);
         } catch {

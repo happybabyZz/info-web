@@ -104,9 +104,12 @@ const MentorChatPage: React.FC<MentorChatPageProps> = ({ setPage }) => {
         );
 
         try {
-          const results = (await axios.post(`/v1/users?detailInfo=true`, {
-            ids: studentIds
-          })).data;
+          const results = (await axios.post(
+            `/v1/users/details?detailInfo=true`,
+            {
+              ids: studentIds
+            }
+          )).data;
 
           setStudents(results);
           if (results.length !== 0) {
